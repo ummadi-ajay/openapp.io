@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Assistant</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f7f7f7;
+            padding: 20px;
+        }
+
+        input[type="text"] {
+            padding: 10px;
+            font-size: 16px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            text-align: center;
+            background-color: #ffffff;
+            width: 300px;
+        }
+
+        .app-button {
+            position: relative; /* Make the parent container for absolute positioning */
+            padding: 15px 30px;
+            font-size: 18px;
+            cursor: pointer;
+            border-radius: 10px;
+            border: none;
+            background-color: #87CEEB;
+            color: white;
+            margin: 10px;
+            display: inline-block; /* Display as inline block */
+        }
+
+        .app-button .app-button-text {
+            display: inline-block; /* Display app text as inline block */
+        }
+
+        .options-button {
+            position: absolute; /* Position the options button relative to the parent */
+            top: -5px;
+            right: 5px;
+            font-size: 24px;
+            cursor: pointer;
+            background-color: transparent;
+            border: none;
+            display: flex;
+            align-items: center; /* Center the icon vertically */
+            justify-content: center; /* Center the icon horizontally */
+        }
+
+        .options-button:hover {
+            color: #555;
+        }
+
+        .options-menu {
+            position: absolute;
+            background-color: #ffffff;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            z-index: 1;
+        }
+
+        .options-menu div {
+            padding: 10px;
+            cursor: pointer;
+        }
+
+        .options-menu div:hover {
+            background-color: #f0f0f0;
+        }
+
+        #pinnedApps,
+        #appList {
+            margin-top: 20px;
+        }
+    
+        #addAppButton {
+            margin-top: 20px;
+            padding: 15px 30px;
+            font-size: 18px;
+            cursor: pointer;
+            border-radius: 10px;
+            border: none;
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        #addAppButton:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <h1>Open App</h1>
+
+    <p>Type the app name:</p>
+    <input type="text" id="appNameInput" oninput="openTypedApp()">
+    
+    <div id="pinnedApps">
+        <h3>Pinned Apps:</h3>
+        <!-- Pinned apps will be added here -->
+    </div>
+
+    <div id="appList">
+        <h3>Available Apps:</h3>
+        <!-- App buttons will be added here -->
+    </div>
+
+    <p>Or add your own app:</p>
+    <input type="text" id="newAppNameInput" placeholder="App Name">
+    <input type="text" id="newAppUrlInput" placeholder="App URL">
+    <button id="addAppButton" onclick="addNewApp()">Add App</button>
+
+    <script>
+        // Predefined apps
+        var predefinedApps = {
+            "youtube": "https://www.youtube.com",
+            "google": "https://www.google.com",
+            "instagram": "https://www.instagram.com",
+            "googlephotos": "https://photos.google.com/",
+            "drive": "https://drive.google.com/"
+        };
+
+        // Pinned apps (initially empty)
+        var pinnedApps = [];
+
+        // Function to display pinned apps
+        function displayPinnedApps() {
+            var pinnedAppsDiv = document.getElementById("pinnedApps");
+            pinnedAppsDiv.innerHTML = "<h3>Pinned Apps:</h3>";
+            pinnedApps.forEach(function(appName) {
+                var appUrl = predefinedApps[appName];
+                var appButton = createAppButton(appName, appUrl);
+                pinnedAppsDiv.appendChild(appButton);
+            });
+        }
+
+        // Function to display available apps
+        function displayApps() {
+            var appListDiv = document.getElementById("appList");
+            appListDiv.innerHTML = "<h3>Available Apps:</h3>";
+            for (var appName in predefinedApps) {
+                // Check if the app is not pinned
+                if (!pinnedApps.includes(appName)) {
+                    var appUrl = predefinedApps[appName];
+                    var appButton = createAppButton(appName, appUrl);
+                    appListDiv.appendChild(appButton);
+                }
+            }
+        }
+
+        // Function to create an app button with options
+        function createAppButton(appName, appUrl) {
+            var appButton = document.createElement("button");
+            appButton.className = "app-button";
+            appButton.onclick = function() {
+                openApp(appName);
+            };
+
+            var appButtonText = document.createElement("span");
+            appButtonText.className = "app-button-text";
+            appButtonText.textContent = appName;
+
+            var optionsButton = document.createElement("button");
+            optionsButton.className = "options-button";
+            optionsButton.innerHTML = '<i class="fas fa-ellipsis-h"></i>'; // Font Awesome icon
+            optionsButton.onclick = function(event) {
+                event.stopPropagation(); // Prevent the click from bubbling to the appButton
+                showOptions(event, appName);
+            };
+
+            appButton.appendChild(appButtonText);
+            appButton.appendChild(optionsButton);
+
+            return appButton;
+        }
+
+        // Function to show options menu
+        function showOptions(event, appName) {
+            var optionsMenu = document.createElement("div");
+            optionsMenu.className = "options-menu";
+
+            var pinOrUnpinOption = document.createElement("div");
+            pinOrUnpinOption.textContent = pinnedApps.includes(appName) ? "Unpin" : "Pin";
+            pinOrUnpinOption.onclick = function() {
+                togglePin(appName);
+                optionsMenu.remove();
+            };
+
+            var deleteOption = document.createElement("div");
+            deleteOption.textContent = "Delete";
+            deleteOption.onclick = function() {
+                deleteApp(appName);
+                optionsMenu.remove();
+            };
+
+            var editOption = document.createElement("div");
+            editOption.textContent = "Edit";
+            editOption.onclick = function() {
+                editApp(appName);
+                optionsMenu.remove();
+            };
+
+            var cancelOption = document.createElement("div");
+            cancelOption.textContent = "Cancel";
+            cancelOption.onclick = function() {
+                optionsMenu.remove();
+            };
+
+            optionsMenu.appendChild(pinOrUnpinOption);
+            optionsMenu.appendChild(deleteOption);
+            optionsMenu.appendChild(editOption);
+            optionsMenu.appendChild(cancelOption);
+
+            optionsMenu.style.left = event.pageX + "px";
+            optionsMenu.style.top = event.pageY + "px";
+
+            document.body.appendChild(optionsMenu);
+
+            // Close options menu when clicked outside
+            document.addEventListener("click", function closeOptionsMenu(e) {
+                if (e.target !== optionsButton && !optionsMenu.contains(e.target)) {
+                    optionsMenu.remove();
+                    document.removeEventListener("click", closeOptionsMenu);
+                }
+            });
+        }
+
+        // Function to toggle pinning an app
+        function togglePin(appName) {
+            if (pinnedApps.includes(appName)) {
+                unpinApp(appName);
+            } else {
+                pinApp(appName);
+            }
+        }
+
+        // Function to open the app typed by the user
+        function openTypedApp() {
+            var appName = document.getElementById("appNameInput").value.trim();
+            if (appName) {
+                openApp(appName);
+            } else {
+                speak("Please enter an app name.");
+            }
+        }
+
+        // Function to open an app
+        function openApp(appName) {
+            var appUrl = getAppUrl(appName.toLowerCase());
+            if (appUrl) {
+                speak("Opening " + appName);
+                window.open(appUrl);
+            } else {
+                speak("Sorry, I didn't understand that app name.");
+            }
+        }
+
+        // Function to add a new app
+        function addNewApp() {
+            var appName = document.getElementById("newAppNameInput").value.trim();
+            var appUrl = document.getElementById("newAppUrlInput").value.trim();
+            if (appName && appUrl) {
+                // Validate the URL
+                if (!isValidUrl(appUrl)) {
+                    speak("Please enter a valid URL starting with http:// or https://");
+                    return;
+                }
+                // Add the new app to the predefined apps
+                predefinedApps[appName.toLowerCase()] = appUrl;
+                // Save to local storage
+                saveAppsToLocalStorage();
+                // Clear input fields
+                document.getElementById("newAppNameInput").value = "";
+                document.getElementById("newAppUrlInput").value = "";
+                speak(appName + " added.");
+                // Update the list of available apps
+                displayApps();
+            } else {
+                speak("Please enter both app name and URL.");
+            }
+        }
+
+        // Function to pin an app
+        function pinApp(appName) {
+            pinnedApps.push(appName);
+            saveAppsToLocalStorage();
+            displayPinnedApps();
+            displayApps();
+        }
+
+        // Function to unpin an app
+        function unpinApp(appName) {
+            var index = pinnedApps.indexOf(appName);
+            if (index !== -1) {
+                pinnedApps.splice(index, 1);
+                saveAppsToLocalStorage();
+                displayPinnedApps();
+                displayApps();
+            }
+        }
+
+        // Function to delete an app
+        function deleteApp(appName) {
+            if (confirm("Are you sure you want to delete the app: " + appName + "?")) {
+                delete predefinedApps[appName.toLowerCase()];
+                // Remove the app from pinned apps if it's there
+                unpinApp(appName);
+                saveAppsToLocalStorage();
+                displayApps();
+            }
+        }
+
+        // Function to edit an app
+        function editApp(appName) {
+            var newAppName = prompt("Enter the new name for the app:", appName);
+            if (newAppName) {
+                var newAppUrl = prompt("Enter the new URL for the app:", predefinedApps[appName]);
+                if (newAppUrl) {
+                    // Validate the URL
+                    if (!isValidUrl(newAppUrl)) {
+                        speak("Please enter a valid URL starting with http:// or https://");
+                        return;
+                    }
+                    // Delete the old app
+                    delete predefinedApps[appName.toLowerCase()];
+                    // Add the edited app
+                    predefinedApps[newAppName.toLowerCase()] = newAppUrl;
+                    // Update the list of available apps
+                    displayApps();
+                    speak("App edited successfully.");
+                } else {
+                    speak("URL not provided. App edit canceled.");
+                }
+            } else {
+                speak("App name not provided. App edit canceled.");
+            }
+        }
+
+        // Function to validate URL
+        function isValidUrl(url) {
+            return url.startsWith("http://") || url.startsWith("https://");
+        }
+
+        // Function to get URL for an app
+        function getAppUrl(appName) {
+            return predefinedApps[appName];
+        }
+
+        // Function to save apps to local storage
+        function saveAppsToLocalStorage() {
+            localStorage.setItem("userApps", JSON.stringify(predefinedApps));
+            localStorage.setItem("pinnedApps", JSON.stringify(pinnedApps));
+        }
+
+        // Function to load apps from local storage
+        function loadAppsFromLocalStorage() {
+            var userApps = localStorage.getItem("userApps");
+            if (userApps) {
+                predefinedApps = JSON.parse(userApps);
+            }
+            var pinnedAppsData = localStorage.getItem("pinnedApps");
+            if (pinnedAppsData) {
+                pinnedApps = JSON.parse(pinnedAppsData);
+            }
+        }
+
+        // Function to speak
+        function speak(text) {
+            // Implementation for speech synthesis
+            console.log(text); // For testing
+        }
+
+        // Display pinned and available apps when the page loads
+        window.onload = function() {
+            loadAppsFromLocalStorage();
+            displayPinnedApps();
+            displayApps();
+        };
+    </script>
+</body>
+</html>
+
